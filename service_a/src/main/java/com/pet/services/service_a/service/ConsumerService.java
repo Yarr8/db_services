@@ -3,6 +3,7 @@ package com.pet.services.service_a.service;
 import com.pet.services.service_a.dto.MessageResponseDto;
 import com.pet.services.service_a.entity.Message;
 import com.pet.services.service_a.mapper.MessageMapper;
+import com.pet.services.service_a.metrics.MessageMetrics;
 import com.pet.services.service_a.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class ConsumerService {
     private final MessageRepository repository;
     private final RestClient restClient;
     private final MessageMapper messageMapper;
+    private final MessageMetrics messageMetrics;
 
     @KafkaListener(id = "service-a", topics = "in")
     public void listen(String message, @Header(name = KafkaHeaders.RECEIVED_KEY, required = false) String key) {
@@ -44,6 +46,8 @@ public class ConsumerService {
                     .body(messageDto)
                     .retrieve()
                     .toBodilessEntity();
+
+            messageMetrics.increment();
         } catch (Exception e) {
             System.err.println("Failed to send to next service: " + e.getMessage());
         } finally {

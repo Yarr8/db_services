@@ -15,3 +15,15 @@ spring:
 
 service-b:
   uri: ${SERVICE_B_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics, info, env, prometheus
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
