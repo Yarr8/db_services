@@ -1,0 +1,121 @@
+services:
+
+  kafka:
+    image: apache/kafka:latest
+    # container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_METADATA_LOG_DIR: /var/lib/kafka/data/metadata
+      KAFKA_LOG_DIRS: /var/lib/kafka/data/logs
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - "8085:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_BASICAUTH: "false"
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+      
+  redis-insight:
+    image: redis/redisinsight:latest
+    ports:
+      - "5540:5540"
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: service_c_db
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+
+  service-a:
+    build: ./service_a
+    depends_on:
+      - kafka
+      - mongo
+    environment:
+      # MongoDB
+      MONGODB_URI: mongodb://mongo:27017/service-a-db
+
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+      # URLs до других сервисов
+      SERVICE_B_URL: http://service-b:8080
+    ports:
+      - "8081:8080"
+
+  service-b:
+    build: ./service_b
+    depends_on:
+      - redis
+    environment:
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # URLs до других сервисов
+      SERVICE_C_URL: http://service-c:8080
+    ports:
+      - "8082:8080"
+
+  service-c:
+    build: ./service_c
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      # PostgreSQL
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/service_c_db
+      DATASOURCE_USERNAME: user
+      DATASOURCE_PASSWORD: password
+
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "8083:8080"
+
+volumes:
+  kafka_data:

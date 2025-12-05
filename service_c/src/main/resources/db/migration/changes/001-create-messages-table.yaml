@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-messages-table
+      author: user
+      preConditions:
+        onFail: MARK_RAN
+        onError: HALT
+        onUpdateSQL: MARK_RAN
+        not:
+          tableExists:
+            tableName: messages
+      changes:
+        - createTable:
+            tableName: messages
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: key
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: messages
+            indexName: idx_messages_key
+            columns:
+              - column:
+                  name: key
